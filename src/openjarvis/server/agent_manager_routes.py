@@ -572,6 +572,32 @@ def _instantiate_managed_tool(
                 name,
             )
         return tool_cls(channel=channel)
+    if name in {"knowledge_search", "knowledge_sql", "scan_chunks"}:
+        from pathlib import Path
+
+        from openjarvis.core.config import DEFAULT_CONFIG_DIR
+
+        knowledge_db_path = str(DEFAULT_CONFIG_DIR / "knowledge.db")
+        if not Path(knowledge_db_path).exists():
+            logger.warning(
+                "Knowledge tool %r instantiated without a knowledge DB at %s.",
+                name,
+                knowledge_db_path,
+            )
+            return tool_cls()
+
+        from openjarvis.connectors.retriever import TwoStageRetriever
+        from openjarvis.connectors.store import KnowledgeStore
+        from openjarvis.tools.knowledge_search import KnowledgeSearchTool
+        from openjarvis.tools.knowledge_sql import KnowledgeSQLTool
+        from openjarvis.tools.scan_chunks import ScanChunksTool
+
+        store = KnowledgeStore(knowledge_db_path)
+        if name == "knowledge_search":
+            return KnowledgeSearchTool(retriever=TwoStageRetriever(store))
+        if name == "knowledge_sql":
+            return KnowledgeSQLTool(store=store)
+        return ScanChunksTool(store=store, engine=engine, model=model)
     if name == "llm":
         return tool_cls(engine=engine, model=model)
     return tool_cls()
@@ -842,9 +868,7 @@ async def _stream_managed_agent(
 
         app_config = load_config()
 
-    final_system_prompt = _build_managed_system_prompt(
-        system_prompt or "", app_config
-    )
+    final_system_prompt = _build_managed_system_prompt(system_prompt or "", app_config)
 
     if final_system_prompt and final_system_prompt.strip():
         llm_messages.append(

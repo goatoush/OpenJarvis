@@ -88,3 +88,28 @@ def test_registered() -> None:
 
     ToolRegistry.register_value("knowledge_sql", KnowledgeSQLTool)
     assert ToolRegistry.contains("knowledge_sql")
+
+
+def test_falls_back_to_default_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from openjarvis.core import config as config_mod
+    from openjarvis.tools.knowledge_sql import KnowledgeSQLTool
+
+    db_path = tmp_path / "knowledge.db"
+    ks = KnowledgeStore(str(db_path))
+    ks.store(
+        "Chris Example",
+        source="apple_contacts",
+        author="Chris",
+        doc_type="contact",
+    )
+    ks.close()
+
+    monkeypatch.setattr(config_mod, "DEFAULT_CONFIG_DIR", tmp_path)
+    tool = KnowledgeSQLTool()
+    result = tool.execute(
+        query="SELECT author FROM knowledge_chunks WHERE source = 'apple_contacts'"
+    )
+    assert result.success
+    assert "Chris" in result.content

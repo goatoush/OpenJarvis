@@ -57,6 +57,7 @@ def test_system_prompt_has_response_types() -> None:
     assert "Meeting prep" in prompt or "meeting" in prompt.lower()
     assert "Task" in prompt or "action item" in prompt.lower()
     assert "Contact analysis" in prompt or "haven't I messaged" in prompt
+    assert "Contact lookup" in prompt or "apple contacts" in prompt.lower()
 
 
 def test_system_prompt_has_tools() -> None:
@@ -68,6 +69,15 @@ def test_system_prompt_has_tools() -> None:
     assert "knowledge_sql" in prompt
     assert "scan_chunks" in prompt
     assert "think" in prompt
+
+
+def test_system_prompt_mentions_apple_contacts_as_searchable_source() -> None:
+    """The prompt teaches the agent to search Apple Contacts directly."""
+    from openjarvis.agents.deep_research import _build_system_prompt
+
+    prompt = _build_system_prompt().lower()
+    assert "apple_contacts" in prompt
+    assert "doc_type='contact'" in prompt
 
 
 def test_system_prompt_has_no_think_directive() -> None:

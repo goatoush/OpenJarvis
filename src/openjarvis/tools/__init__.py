@@ -128,6 +128,21 @@ except ImportError:
     pass
 
 try:
+    import openjarvis.tools.knowledge_search  # noqa: F401
+except ImportError:
+    pass
+
+try:
+    import openjarvis.tools.knowledge_sql  # noqa: F401
+except ImportError:
+    pass
+
+try:
+    import openjarvis.tools.scan_chunks  # noqa: F401
+except ImportError:
+    pass
+
+try:
     import openjarvis.tools.knowledge_tools  # noqa: F401
 except ImportError:
     pass

@@ -173,6 +173,78 @@ class TestInstantiateManagedTool:
         )
         assert tool.kwargs == {}
 
+    def test_knowledge_sql_gets_store(self, tmp_path, monkeypatch):
+        from openjarvis.connectors.store import KnowledgeStore
+        from openjarvis.tools.knowledge_sql import KnowledgeSQLTool
+
+        db_path = tmp_path / "knowledge.db"
+        store = KnowledgeStore(str(db_path))
+        store.store("hello", source="test", doc_type="note")
+        store.close()
+
+        from openjarvis.core import config as config_mod
+
+        monkeypatch.setattr(config_mod, "DEFAULT_CONFIG_DIR", tmp_path)
+        tool = _instantiate_managed_tool(
+            KnowledgeSQLTool,
+            "knowledge_sql",
+            engine=object(),
+            model="m",
+            app_state=SimpleNamespace(
+                memory_backend=None, config=None, channel_bridge=None
+            ),
+        )
+        assert tool._store is not None
+
+    def test_knowledge_search_gets_retriever(self, tmp_path, monkeypatch):
+        from openjarvis.connectors.store import KnowledgeStore
+        from openjarvis.tools.knowledge_search import KnowledgeSearchTool
+
+        db_path = tmp_path / "knowledge.db"
+        store = KnowledgeStore(str(db_path))
+        store.store("hello", source="test", doc_type="note")
+        store.close()
+
+        from openjarvis.core import config as config_mod
+
+        monkeypatch.setattr(config_mod, "DEFAULT_CONFIG_DIR", tmp_path)
+        tool = _instantiate_managed_tool(
+            KnowledgeSearchTool,
+            "knowledge_search",
+            engine=object(),
+            model="m",
+            app_state=SimpleNamespace(
+                memory_backend=None, config=None, channel_bridge=None
+            ),
+        )
+        assert tool._retriever is not None
+
+    def test_scan_chunks_gets_store_engine_and_model(self, tmp_path, monkeypatch):
+        from openjarvis.connectors.store import KnowledgeStore
+        from openjarvis.tools.scan_chunks import ScanChunksTool
+
+        db_path = tmp_path / "knowledge.db"
+        store = KnowledgeStore(str(db_path))
+        store.store("hello", source="test", doc_type="note")
+        store.close()
+
+        from openjarvis.core import config as config_mod
+
+        engine = object()
+        monkeypatch.setattr(config_mod, "DEFAULT_CONFIG_DIR", tmp_path)
+        tool = _instantiate_managed_tool(
+            ScanChunksTool,
+            "scan_chunks",
+            engine=engine,
+            model="qwen",
+            app_state=SimpleNamespace(
+                memory_backend=None, config=None, channel_bridge=None
+            ),
+        )
+        assert tool._store is not None
+        assert tool._engine is engine
+        assert tool._model == "qwen"
+
 
 class TestBuildManagedSystemPrompt:
     """#431 — the streaming managed-agent path must run the agent's

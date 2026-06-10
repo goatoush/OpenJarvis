@@ -45,3 +45,13 @@ def test_browser_meta_group():
     names = {t["name"] for t in tools}
     assert "browser" in names
     assert "browser_navigate" not in names
+
+
+def test_tools_include_knowledge_research_tools():
+    from openjarvis.server.agent_manager_routes import build_tools_list
+
+    tools = build_tools_list()
+    names = {t["name"] for t in tools}
+    assert "knowledge_search" in names
+    assert "knowledge_sql" in names
+    assert "scan_chunks" in names

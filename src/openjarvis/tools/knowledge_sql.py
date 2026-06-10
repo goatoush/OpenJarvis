@@ -32,6 +32,16 @@ class KnowledgeSQLTool(BaseTool):
     def __init__(self, store: Optional[KnowledgeStore] = None) -> None:
         self._store = store
 
+    def _ensure_store(self) -> Optional[KnowledgeStore]:
+        """Lazily open the default knowledge store if one wasn't injected."""
+        if self._store is not None:
+            return self._store
+        try:
+            self._store = KnowledgeStore()
+        except Exception:
+            self._store = None
+        return self._store
+
     @property
     def spec(self) -> ToolSpec:
         return ToolSpec(
@@ -61,7 +71,8 @@ class KnowledgeSQLTool(BaseTool):
         )
 
     def execute(self, **params: Any) -> ToolResult:
-        if self._store is None:
+        store = self._ensure_store()
+        if store is None:
             return ToolResult(
                 tool_name="knowledge_sql",
                 content="No knowledge store configured.",
@@ -97,7 +108,7 @@ class KnowledgeSQLTool(BaseTool):
                 )
 
         try:
-            rows = self._store._conn.execute(query).fetchmany(_MAX_ROWS)
+            rows = store._conn.execute(query).fetchmany(_MAX_ROWS)
         except sqlite3.OperationalError as exc:
             return ToolResult(
                 tool_name="knowledge_sql",

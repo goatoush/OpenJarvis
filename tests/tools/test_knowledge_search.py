@@ -153,3 +153,25 @@ def test_tool_uses_two_stage_retriever(tmp_path: Path) -> None:
     result = tool.execute(query="deep learning")
     assert result.success
     assert result.metadata["num_results"] > 0
+
+
+def test_tool_falls_back_to_default_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from openjarvis.core import config as config_mod
+
+    store = KnowledgeStore(db_path=str(tmp_path / "knowledge.db"))
+    store.store(
+        content="Chris Example\nPhone Mobile: 555-0100",
+        source="apple_contacts",
+        doc_type="contact",
+        author="Chris Example",
+        title="Chris Example",
+    )
+    store.close()
+
+    monkeypatch.setattr(config_mod, "DEFAULT_CONFIG_DIR", tmp_path)
+    tool = KnowledgeSearchTool()
+    result = tool.execute(query="Chris", source="apple_contacts", doc_type="contact")
+    assert result.success
+    assert "Chris Example" in result.content

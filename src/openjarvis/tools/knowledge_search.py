@@ -37,6 +37,22 @@ class KnowledgeSearchTool(BaseTool):
         self._store = store
         self._retriever = retriever
 
+    def _ensure_backend(
+        self,
+    ) -> tuple[Optional[KnowledgeStore], Optional["TwoStageRetriever"]]:
+        """Lazily open the default knowledge store if no backend was injected."""
+        if self._store is not None or self._retriever is not None:
+            return self._store, self._retriever
+        try:
+            from openjarvis.connectors.retriever import TwoStageRetriever
+
+            self._store = KnowledgeStore()
+            self._retriever = TwoStageRetriever(self._store)
+        except Exception:
+            self._store = None
+            self._retriever = None
+        return self._store, self._retriever
+
     @property
     def spec(self) -> ToolSpec:
         return ToolSpec(
@@ -94,7 +110,8 @@ class KnowledgeSearchTool(BaseTool):
         )
 
     def execute(self, **params: Any) -> ToolResult:
-        if self._store is None and self._retriever is None:
+        store, retriever = self._ensure_backend()
+        if store is None and retriever is None:
             return ToolResult(
                 tool_name="knowledge_search",
                 content="No knowledge store configured.",
@@ -116,8 +133,8 @@ class KnowledgeSearchTool(BaseTool):
         since: Optional[str] = params.get("since")
         until: Optional[str] = params.get("until")
 
-        if self._retriever is not None:
-            results = self._retriever.retrieve(
+        if retriever is not None:
+            results = retriever.retrieve(
                 query,
                 top_k=top_k,
                 source=source or "",
@@ -127,7 +144,7 @@ class KnowledgeSearchTool(BaseTool):
                 until=until or "",
             )
         else:
-            results = self._store.retrieve(  # type: ignore[union-attr]
+            results = store.retrieve(  # type: ignore[union-attr]
                 query,
                 top_k=top_k,
                 source=source,
