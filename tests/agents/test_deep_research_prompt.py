@@ -80,6 +80,16 @@ def test_system_prompt_mentions_apple_contacts_as_searchable_source() -> None:
     assert "doc_type='contact'" in prompt
 
 
+def test_system_prompt_mentions_hackernews_as_searchable_source() -> None:
+    """The prompt teaches the agent to query synced Hacker News items directly."""
+    from openjarvis.agents.deep_research import _build_system_prompt
+
+    prompt = _build_system_prompt().lower()
+    assert "hacker news" in prompt
+    assert "source='hackernews'" in prompt
+    assert "live web access" in prompt
+
+
 def test_system_prompt_has_no_think_directive() -> None:
     """The prompt starts with /no_think for Qwen compatibility."""
     from openjarvis.agents.deep_research import _build_system_prompt
